@@ -159,7 +159,6 @@
     '比叡山': 'Mount Hiei',
     '高野山': 'Mount Koya',
     '明石': 'Akashi',
-    '淡路島': 'Awaji Island',
     '吉野山': 'Mount Yoshino',
     '法隆寺': 'Horyuji Temple',
     '橿原': 'Kashihara',

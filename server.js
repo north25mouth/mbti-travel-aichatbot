@@ -10,7 +10,7 @@ const {
     getDestinationList,
     getEnglishDestination,
     isValidDestination
-} = require('./destinations.js');
+} = require('./public/destinations.js');
 
 const app = express();
 const port = process.env.PORT || 3000;

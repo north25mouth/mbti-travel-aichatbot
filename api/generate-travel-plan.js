@@ -2,35 +2,26 @@ const express = require('express');
 const cors = require('cors');
 const { OpenAI } = require('openai');
 const bodyParser = require('body-parser');
-const path = require('path');
 require('dotenv').config();
 
 // destinations.jsから辞書と関数をインポート
-const { 
+const {
     getDestinationList,
     getEnglishDestination,
     isValidDestination
 } = require('./utils/destinations.js');
 
-const app = express();
-const port = process.env.PORT || 3000;
+// セッション情報を保存するためのオブジェクト
+// 実際のプロダクションでは、Redis等の適切なセッションストアを使用することを推奨
+const sessionStore = {};
 
 // OpenAI設定
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-// セッション情報を保存するためのオブジェクト
-// 実際のプロダクションでは、Redis等の適切なセッションストアを使用することを推奨
-const sessionStore = {};
-
-// ミドルウェア
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
 // 旅行プラン生成API
-app.post('/api/generate-travel-plan', async (req, res) => {
+module.exports = async (req, res) => {
     try {
         const {
             mbtiType,
@@ -74,9 +65,9 @@ ${destinationList}
 7. 学生向けの節約術
 8. ${mbtiType}タイプの旅行者への特別アドバイス
 
-${travelStyle === '定番の人気スポット' ? 
-    '人気の観光地や定番のスポットを中心に提案してください。' :
-    'あまり知られていない穴場スポットやユニークな体験を中心に提案してください。'}
+${travelStyle === '定番の人気スポット' ?
+            '人気の観光地や定番のスポットを中心に提案してください。' :
+            'あまり知られていない穴場スポットやユニークな体験を中心に提案してください。'}
 
 若者向けのフレンドリーな口調で、絵文字も適度に使ってください。学生の視点に立ったアドバイスを心がけてください。
 必ず各セクションの前後に改行を入れ、見出しを太字にし、重要ポイントを強調してください。
@@ -100,7 +91,7 @@ ${travelStyle === '定番の人気スポット' ?
         });
 
         const travelPlanContent = completion.choices[0].message.content;
-        
+
         // 旅行先を抽出する関数
         function extractDestination(content) {
             // "主な旅行先: [都市名/地域名]" という形式から抽出
@@ -108,7 +99,7 @@ ${travelStyle === '定番の人気スポット' ?
             if (destinationMatch && destinationMatch[1]) {
                 return destinationMatch[1].trim();
             }
-            
+
             // バックアッププラン: タイトルや最初の段落から推測
             const lines = content.split('\n');
             for (const line of lines) {
@@ -122,35 +113,36 @@ ${travelStyle === '定番の人気スポット' ?
                     }
                 }
             }
-            
+
             return '指定なし'; // 抽出できない場合のデフォルト値
         }
-        
+
         // 画像キーワードを抽出する関数
         function extractImageKeyword(content) {
             const keywordMatch = content.match(/画像キーワード:\s*([^\n]+)/);
             if (keywordMatch && keywordMatch[1]) {
                 return keywordMatch[1].trim();
             }
-            
+
             // バックアッププラン: 旅行先から生成
             const destination = extractDestination(content);
             if (destination && destination !== '指定なし') {
                 return `${destination} 風景 観光地`;
             }
-            
+
             return destinationType === '国内' ? '日本 観光地 風景' : '海外 観光地 風景'; // デフォルト値
         }
 
         // 旅行先と画像キーワードを抽出
         const extractedDestination = extractDestination(travelPlanContent);
         const imageKeyword = extractImageKeyword(travelPlanContent);
-        
+
         // 英語キーワードを取得
         const englishKeyword = getEnglishDestination(imageKeyword, destinationType);
-        
-        // セッションストアに情報を保存
-        sessionStore[sessionId] = {
+
+        // セッション情報を保存（Vercelでは一時的な保存に注意）
+        // 後でセッション管理サービスや別のデータストアに移行することを検討
+        const sessionData = {
             mbtiType,
             destinationType,
             budget,
@@ -165,6 +157,9 @@ ${travelStyle === '定番の人気スポット' ?
             travelPlanContent
         };
 
+        // セッションストアに保存
+        sessionStore[sessionId] = sessionData;
+
         // レスポンスを返す
         res.json({
             sessionId,
@@ -178,137 +173,4 @@ ${travelStyle === '定番の人気スポット' ?
         console.error('Error generating travel plan:', error);
         res.status(500).json({ error: 'サーバーエラーが発生しました' });
     }
-});
-
-// おすすめホテル情報API - セッションIDを利用した拡張版
-app.post('/api/recommend-hotels', async (req, res) => {
-    try {
-        const { sessionId } = req.body;
-        let userData;
-
-        // セッションIDが提供されている場合、保存されている情報を取得
-        if (sessionId && sessionStore[sessionId]) {
-            userData = sessionStore[sessionId];
-        } else {
-            // セッションIDがない場合や無効な場合は、直接リクエストから情報を取得
-            userData = req.body;
-        }
-
-        const {
-            mbtiType,
-            destinationType,
-            budget,
-            duration,
-            season,
-            companions,
-            travelStyle,
-            interests,
-            extractedDestination
-        } = userData;
-
-        // 旅行先情報を使用
-        const destination = extractedDestination || '指定なし';
-
-        // システムプロンプトの作成
-        const systemPrompt = `あなたはMBTIを理解するホテルコンシェルジュです。以下のユーザー情報に基づいて、おすすめのホテルを3つ提案してください：
-
-MBTIタイプ: ${mbtiType}
-旅行先: ${destination}
-旅行先タイプ: ${destinationType}
-予算: ${budget}
-期間: ${duration}
-季節: ${season}
-同行者: ${companions}
-旅行スタイル: ${travelStyle}
-興味: ${interests ? interests.join(', ') : '指定なし'}
-
-以下のJSON形式で回答してください：
-{
-  "hotels": [
-    {
-      "name": "ホテル名",
-      "location": "場所（都市名や住所）",
-      "pricePerNight": "1泊あたりの価格（円または現地通貨）",
-      "rating": 評価点（5段階）,
-      "description": "ホテルの魅力や特徴の簡単な説明",
-      "features": ["特徴1", "特徴2", "特徴3"],
-      "mbtiMatch": "${mbtiType}タイプの人にこのホテルをおすすめする理由"
-    },
-    ...続けて2つのホテル情報...
-  ]
-}
-
-すべての価格は${budget}の予算を考慮して適切なものにしてください。
-${mbtiType}タイプの性格特性を考慮して、そのタイプが好むであろうホテルを選んでください。
-${companions}との旅行であることも考慮してください。
-特に提案された旅行先「${destination}」の実際のホテルを具体的に提案してください。`;
-
-        // ユーザーメッセージの作成
-        const userMessage = `${mbtiType}タイプの私が${companions}と${season}に${duration}の${destination}への旅行を計画しています。予算は${budget}で、${interests ? interests.join('、') : ''}に興味があります。${travelStyle}を希望しています。私に合ったホテルを3つ教えてください。`;
-
-        // OpenAI APIを呼び出し
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userMessage }
-            ],
-            max_tokens: 1500,
-            temperature: 0.7,
-            response_format: { type: "json_object" }
-        });
-
-        // レスポンスの内容をログに記録
-        console.log("OpenAI APIレスポンス受信");
-
-        // レスポンスをJSON形式でパース
-        const responseData = JSON.parse(completion.choices[0].message.content);
-        
-        // ホテルデータが正しく含まれているか確認
-        if (!responseData.hotels || !Array.isArray(responseData.hotels) || responseData.hotels.length === 0) {
-            console.error("有効なホテルデータがありません:", responseData);
-            return res.status(404).json({ error: "条件に合うホテルが見つかりませんでした" });
-        }
-        
-        // ホテルデータに必須フィールドがあるか確認
-        const validHotels = responseData.hotels.filter(hotel => 
-            hotel.name && hotel.location && hotel.pricePerNight && hotel.description);
-        
-        if (validHotels.length === 0) {
-            console.error("有効なホテルデータがありません");
-            return res.status(404).json({ error: "有効なホテル情報が見つかりませんでした" });
-        }
-        
-        // レスポンスを返す
-        res.json({ 
-            hotels: validHotels,
-            destination: destination  // 使用した旅行先情報も返す
-        });
-
-    } catch (error) {
-        console.error('Error recommending hotels:', error);
-        res.status(500).json({ error: 'ホテル情報の取得中にエラーが発生しました' });
-    }
-});
-
-// セッション情報を取得するAPI
-app.get('/api/session/:sessionId', (req, res) => {
-    const { sessionId } = req.params;
-    
-    if (sessionStore[sessionId]) {
-        res.json({ 
-            success: true, 
-            data: sessionStore[sessionId] 
-        });
-    } else {
-        res.status(404).json({ 
-            success: false, 
-            error: 'セッション情報が見つかりません' 
-        });
-    }
-});
-
-// サーバー起動
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
+};

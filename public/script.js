@@ -3,7 +3,7 @@
 import { 
     getEnglishDestination, 
     isValidDestination 
-} from './destinations.js';
+} from '../utils/destinations.js';
 
 // チャットボットの状態管理
 const chatState = {

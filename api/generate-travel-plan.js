@@ -1,28 +1,67 @@
-const express = require('express');
-const cors = require('cors');
+// api/generate-travel-plan.js
 const { OpenAI } = require('openai');
-const bodyParser = require('body-parser');
-require('dotenv').config();
+const path = require('path');
 
-// destinations.jsから辞書と関数をインポート
+// destinations.jsの正しいパスを設定
+// Vercelの環境では相対パスが異なる場合があるので注意
+let destinationsModule;
+try {
+    // 複数のパスパターンを試す
+    try {
+        destinationsModule = require('../js/destinations.js');
+    } catch (e) {
+        try {
+            destinationsModule = require('../public/js/destinations.js');
+        } catch (e) {
+            try {
+                destinationsModule = require(path.join(process.cwd(), 'js', 'destinations.js'));
+            } catch (e) {
+                destinationsModule = require(path.join(process.cwd(), 'public', 'js', 'destinations.js'));
+            }
+        }
+    }
+} catch (error) {
+    console.error('destinations.jsの読み込みに失敗しました:', error);
+    // フォールバック: 基本的な関数を定義
+    destinationsModule = {
+        getDestinationList: (type) => type === '国内' ? '東京、京都、大阪、北海道' : 'パリ、ロンドン、ニューヨーク、ローマ',
+        getEnglishDestination: (jp) => jp.includes('東京') ? 'Tokyo' : jp.includes('京都') ? 'Kyoto' : 'Japan',
+        isValidDestination: () => true
+    };
+}
+
 const {
     getDestinationList,
     getEnglishDestination,
     isValidDestination
-} = require('./utils/destinations.js');
-
-// セッション情報を保存するためのオブジェクト
-// 実際のプロダクションでは、Redis等の適切なセッションストアを使用することを推奨
-const sessionStore = {};
+} = destinationsModule;
 
 // OpenAI設定
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 旅行プラン生成API
+// サーバーレス関数
 module.exports = async (req, res) => {
+    // CORSヘッダー設定
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+    // OPTIONSリクエストの処理（CORS プリフライト）
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+
+    // リクエストが POST でない場合はエラー
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'メソッドが許可されていません' });
+    }
+
     try {
+        // リクエストボディを取得
         const {
             mbtiType,
             destinationType,
@@ -34,7 +73,12 @@ module.exports = async (req, res) => {
             interests
         } = req.body;
 
-        // セッションIDを生成 (クライアント側で管理するか、より堅牢な方法を検討)
+        // 必須パラメータのチェック
+        if (!mbtiType || !destinationType) {
+            return res.status(400).json({ error: '必須パラメータが不足しています' });
+        }
+
+        // セッションIDを生成
         const sessionId = Date.now().toString();
 
         // 旅行タイプに基づいた観光地リストを取得
@@ -50,7 +94,7 @@ MBTIタイプ: ${mbtiType}
 季節: ${season}
 同行者: ${companions}
 旅行スタイル: ${travelStyle} 
-興味: ${interests.join(', ')}
+興味: ${interests ? interests.join(', ') : '特になし'}
 
 提案する旅行先は必ず以下のリストから選んでください：
 ${destinationList}
@@ -77,7 +121,7 @@ ${travelStyle === '定番の人気スポット' ?
 さらに、提案する旅行先の画像キーワードを "画像キーワード: [キーワード]" という形式で明示的に記載してください。このキーワードは画像検索APIで使用されます。`;
 
         // ユーザーメッセージの作成
-        const userMessage = `${mbtiType}タイプで、${companions}と一緒に${season}に${duration}の${destinationType}旅行を計画しています。予算は${budget}で、${travelStyle}を希望し、${interests.join('、')}に興味があります。おすすめの旅行プランを教えてください。`;
+        const userMessage = `${mbtiType}タイプで、${companions}と一緒に${season}に${duration}の${destinationType}旅行を計画しています。予算は${budget}で、${travelStyle}を希望し、${interests ? interests.join('、') : '特になし'}に興味があります。おすすめの旅行プランを教えてください。`;
 
         // OpenAI APIを呼び出し
         const completion = await openai.chat.completions.create({
@@ -92,76 +136,20 @@ ${travelStyle === '定番の人気スポット' ?
 
         const travelPlanContent = completion.choices[0].message.content;
 
-        // 旅行先を抽出する関数
-        function extractDestination(content) {
-            // "主な旅行先: [都市名/地域名]" という形式から抽出
-            const destinationMatch = content.match(/主な旅行先:\s*([^\n]+)/);
-            if (destinationMatch && destinationMatch[1]) {
-                return destinationMatch[1].trim();
-            }
-
-            // バックアッププラン: タイトルや最初の段落から推測
-            const lines = content.split('\n');
-            for (const line of lines) {
-                if (line.includes('旅行先') || line.includes('おすすめ') || line.includes('提案')) {
-                    // 地名やスポット名を含む可能性がある行から地名を抽出
-                    const words = line.split(/[、。：:]/);
-                    for (const word of words) {
-                        if (word.length > 1 && !word.includes('あなた') && !word.includes('私') && !word.includes('MBTIタイプ')) {
-                            return word.trim();
-                        }
-                    }
-                }
-            }
-
-            return '指定なし'; // 抽出できない場合のデフォルト値
-        }
-
-        // 画像キーワードを抽出する関数
-        function extractImageKeyword(content) {
-            const keywordMatch = content.match(/画像キーワード:\s*([^\n]+)/);
-            if (keywordMatch && keywordMatch[1]) {
-                return keywordMatch[1].trim();
-            }
-
-            // バックアッププラン: 旅行先から生成
-            const destination = extractDestination(content);
-            if (destination && destination !== '指定なし') {
-                return `${destination} 風景 観光地`;
-            }
-
-            return destinationType === '国内' ? '日本 観光地 風景' : '海外 観光地 風景'; // デフォルト値
-        }
-
         // 旅行先と画像キーワードを抽出
         const extractedDestination = extractDestination(travelPlanContent);
-        const imageKeyword = extractImageKeyword(travelPlanContent);
-
-        // 英語キーワードを取得
+        const imageKeyword = extractImageKeyword(travelPlanContent, destinationType);
         const englishKeyword = getEnglishDestination(imageKeyword, destinationType);
 
-        // セッション情報を保存（Vercelでは一時的な保存に注意）
-        // 後でセッション管理サービスや別のデータストアに移行することを検討
-        const sessionData = {
-            mbtiType,
-            destinationType,
-            budget,
-            duration,
-            season,
-            companions,
-            travelStyle,
-            interests,
-            extractedDestination,
-            imageKeyword,
-            englishKeyword,
-            travelPlanContent
-        };
-
-        // セッションストアに保存
-        sessionStore[sessionId] = sessionData;
+        // デバッグログ
+        console.log('旅行プラン生成完了:', {
+            destination: extractedDestination,
+            imageKeyword: imageKeyword,
+            englishKeyword: englishKeyword
+        });
 
         // レスポンスを返す
-        res.json({
+        return res.status(200).json({
             sessionId,
             result: travelPlanContent,
             destination: extractedDestination,
@@ -171,6 +159,53 @@ ${travelStyle === '定番の人気スポット' ?
 
     } catch (error) {
         console.error('Error generating travel plan:', error);
-        res.status(500).json({ error: 'サーバーエラーが発生しました' });
+        return res.status(500).json({ error: 'サーバーエラーが発生しました: ' + error.message });
     }
 };
+
+// 旅行先を抽出する関数
+function extractDestination(content) {
+    if (!content) return '指定なし';
+
+    // "主な旅行先: [都市名/地域名]" という形式から抽出
+    const destinationMatch = content.match(/主な旅行先:\s*([^\n]+)/);
+    if (destinationMatch && destinationMatch[1]) {
+        return destinationMatch[1].trim();
+    }
+
+    // バックアッププラン: タイトルや最初の段落から推測
+    const lines = content.split('\n');
+    for (const line of lines) {
+        if (line.includes('旅行先') || line.includes('おすすめ') || line.includes('提案')) {
+            // 地名やスポット名を含む可能性がある行から地名を抽出
+            const words = line.split(/[、。：:]/);
+            for (const word of words) {
+                if (word.length > 1 && !word.includes('あなた') && !word.includes('私') && !word.includes('MBTIタイプ')) {
+                    return word.trim();
+                }
+            }
+        }
+    }
+
+    return '指定なし'; // 抽出できない場合のデフォルト値
+}
+
+// 画像キーワードを抽出する関数
+function extractImageKeyword(content, destinationType) {
+    if (!content) return destinationType === '国内' ? '日本 観光地 風景' : '海外 観光地 風景';
+
+    // "画像キーワード: [キーワード]" という形式から抽出
+    const keywordMatch = content.match(/画像キーワード:\s*([^\n]+)/);
+    if (keywordMatch && keywordMatch[1]) {
+        return keywordMatch[1].trim();
+    }
+
+    // バックアッププラン: 旅行先から生成
+    const destination = extractDestination(content);
+    if (destination && destination !== '指定なし') {
+        return `${destination} 風景 観光地`;
+    }
+
+    // デフォルト値
+    return destinationType === '国内' ? '日本 観光地 風景' : '海外 観光地 風景';
+}

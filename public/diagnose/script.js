@@ -4,7 +4,7 @@ import {
     getEnglishDestination,
     isValidDestination,
     //getDestinationImage // 新たにインポート
-} from '/utils/destinations.js';
+} from '../js/destinations.js';
 
 // チャットボットの状態管理
 const chatState = {

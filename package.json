@@ -2,8 +2,13 @@
   "name": "mbti-travel-advisor",
   "version": "1.0.0",
   "description": "MBTIタイプに基づく旅行プランナー",
+  "main": "index.js",
+  "scripts": {
+    "start": "vercel dev",
+    "build": "vercel build"
+  },
   "dependencies": {
-    "openai": "^4.20.0"
+    "openai": "^3.2.1"
   },
   "engines": {
     "node": ">=18.0.0"

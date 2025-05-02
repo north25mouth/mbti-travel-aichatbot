@@ -2,6 +2,7 @@
   "name": "mbti-travel-advisor",
   "version": "1.0.0",
   "description": "MBTIタイプに基づく旅行プランナー",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "vercel dev",

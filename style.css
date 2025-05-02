@@ -1,0 +1,185 @@
+/* ========== ベース設定 ========== */
+:root{
+    --c-blue:  #a4c9f2;
+    --c-lav:   #c7b4e9;
+    --c-peach: #f9c2a3;
+    --c-deep:  #0b0f17;
+    --c-white: #ffffff;
+
+    --f-main: 'M PLUS Rounded 1c', sans-serif;
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; }
+
+html,body{
+    height:100%;
+}
+
+body{
+    font-family: var(--f-main);
+    color: var(--c-deep);
+    background:linear-gradient(135deg,var(--c-blue), var(--c-lav), var(--c-peach));
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    overflow-x:hidden;
+}
+
+/* ========== 背景の飛行機マーク ========== */
+body::before{
+    content:"";
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    z-index:-1;
+    background: url("img/plane-logo.png") no-repeat center center;
+    background-size: 70vw;
+    width:100%;
+    height:100%;
+    opacity:0.20;             /* 調整しやすいレベルで表示 */
+    pointer-events:none;
+}
+
+/* ========== ヘッダー ========== */
+.site-header{
+    text-align:center;
+    padding:2.4rem 1rem 1rem;
+}
+
+.site-title{
+    line-height:1.25;
+    font-weight:700;
+    color:var(--c-deep);
+}
+
+.site-title .line1{
+    display:block;
+    font-size:clamp(1.8rem, 5vw, 2.6rem);
+}
+.site-title .line2{
+    display:block;
+    font-size:clamp(1.4rem, 4vw, 2rem);
+    margin-top:.2em;
+}
+
+/* ========== ロゴ画像（使う場合） ========== */
+.logo-wordmark{
+    width:min(380px,90%);
+    height:auto;
+    display:block;
+    margin:0 auto;
+    filter:drop-shadow(0 2px 4px rgb(0 0 0 / .08));
+}
+
+/* ========== メインコンテンツ ========== */
+.hero{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    padding:0 1rem;
+    margin-top:-2rem;
+}
+
+.catch{
+    font-size:clamp(1.6rem, 4.5vw, 2.4rem);
+    margin-bottom:2rem;
+    font-weight:700;
+}
+
+.btn-primary{
+    background:var(--c-deep);
+    color:var(--c-white);
+    padding:.9rem 2.2rem;
+    border:none;
+    border-radius:40px;
+    font-size:1.1rem;
+    cursor:pointer;
+    transition:transform .15s, box-shadow .15s, opacity .15s;
+}
+.btn-primary:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 12px rgb(0 0 0 / .12);
+}
+.btn-primary:active{
+    transform:translateY(0);
+    opacity:.8;
+}
+.btn-primary:focus-visible{
+    outline:3px solid var(--c-peach);
+    outline-offset:3px;
+}
+
+.note{
+    margin-top:1rem;
+    font-size:.85rem;
+}
+
+/* ========== フッター ========== */
+.footer{
+    text-align:center;
+    padding:1rem 0;
+    font-size:.8rem;
+    background:rgb(255 255 255 / .35);
+    backdrop-filter:blur(4px);
+}
+
+/* ========== レスポンシブ ========== */
+@media (min-width: 768px){
+    .hero{ margin-top:-3.5rem; }
+    .btn-primary{ font-size:1.2rem; }
+}
+
+@media (min-width: 1200px){
+    body::before{
+        background-size: 600px;
+        opacity:0.10;
+    }
+}
+
+.sp-only{ display:inline; }
+@media (min-width: 500px){ .sp-only{ display:none; } }
+
+/* ────── スライダー用スタイル ────── */
+.my-swiper {
+    width: 100%;
+    max-width: 1200px;
+    margin: 2rem auto;
+}
+.my-swiper .swiper-slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.my-swiper .swiper-slide img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.1);
+}
+/* ナビボタン色 */
+.my-swiper .swiper-button-prev,
+.my-swiper .swiper-button-next {
+    color: var(--c-deep);
+}
+/* ページネーション（ドット） */
+.my-swiper .swiper-pagination-bullet {
+    background: var(--c-deep);
+    opacity: 0.7;
+}
+.my-swiper .swiper-pagination-bullet-active {
+    opacity: 1;
+}
+
+/* ────── レスポンシブ ────── */
+/* モバイル時に上下マージンを縮める */
+@media (max-width: 600px) {
+    .my-swiper {
+        margin: 1.5rem 0;
+    }
+}
+

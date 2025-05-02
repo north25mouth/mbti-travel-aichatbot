@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>格安×MBTI 旅プラン</title>
+
+  <!-- 丸ゴシック -->
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+  <!-- 既存のスタイル -->
+  <link rel="stylesheet" href="style.css" />
+  <!-- ▼ Swiper CSS 追加 -->
+  <link
+          rel="stylesheet"
+          href="https://unpkg.com/swiper@9/swiper-bundle.min.css"
+  />
+</head>
+<body>
+
+<!-- ▼ ヘッダー（タイトルエリア） -->
+<header class="site-header">
+  <h1 class="site-title">
+    <span class="line1">MBTI × 旅行</span><br>
+    <span class="line2">プラン代行</span>
+  </h1>
+</header>
+
+<!-- ▼ ヒーローエリア -->
+<main class="hero">
+  <p class="catch">
+    あなたの性格タイプに<br class="sp-only">ぴったりの旅を
+  </p>
+
+  <button id="mbti-btn" class="btn-primary">
+    MBTI 別プランを診断する
+  </button>
+
+  <p class="note">※ 無料で診断 → プラン提案まで最短 1 分！</p>
+</main>
+
+<!-- ▼ ５枚スライダーセクション -->
+<section class="swiper my-swiper">
+  <div class="swiper-wrapper">
+    <div class="swiper-slide"><img src="img/slide1.jpg" alt="スライド１" loading="lazy" /></div>
+    <div class="swiper-slide"><img src="img/slide2.jpg" alt="スライド２" loading="lazy" /></div>
+    <div class="swiper-slide"><img src="img/slide3.jpg" alt="スライド３" loading="lazy" /></div>
+    <div class="swiper-slide"><img src="img/slide4.jpg" alt="スライド４" loading="lazy" /></div>
+    <div class="swiper-slide"><img src="img/slide5.jpg" alt="スライド５" loading="lazy" /></div>
+  </div>
+  <!-- ドットナビゲーション -->
+  <div class="swiper-pagination"></div>
+  <!-- 前後ボタン -->
+  <div class="swiper-button-prev"></div>
+  <div class="swiper-button-next"></div>
+</section>
+
+<!-- ▼ フッター -->
+<footer class="footer">
+  © 2025 mbti.match_travel
+</footer>
+
+<!-- 既存のJS -->
+<script src="script.js"></script>
+<!-- ▼ Swiper JS 追加 -->
+<script src="https://unpkg.com/swiper@9/swiper-bundle.min.js"></script>
+</body>
+</html>

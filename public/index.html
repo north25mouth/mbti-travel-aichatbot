@@ -1,159 +1,67 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トラベルくんのMBTI旅行プランナー</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>格安×MBTI 旅プラン</title>
+
+    <!-- 丸ゴシック -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
-    <!-- 画像読み込みエラー処理 -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // 動的に追加される画像にも対応するためのMutationObserver
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.addedNodes) {
-                        mutation.addedNodes.forEach(function(node) {
-                            if (node.nodeType === 1) { // ELEMENT_NODE
-                                const images = node.querySelectorAll('img');
-                                images.forEach(function(img) {
-                                    if (!img.hasAttribute('data-error-handled')) {
-                                        img.setAttribute('data-error-handled', 'true');
-                                        img.addEventListener('error', function() {
-                                            // エンコードされたホテル名を取得
-                                            const altText = encodeURIComponent(this.alt || 'ホテル');
-                                            this.src = `https://via.placeholder.com/400x300?text=${altText}`;
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-            
-            observer.observe(document.body, { childList: true, subtree: true });
-        });
-    </script>
-    <!-- 旅行画像表示用のスタイル -->
-    <style>
-        .travel-image-container {
-            margin: 20px 0;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .travel-image {
-            width: 100%;
-            max-height: 400px;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-        }
-        
-        .travel-image:hover {
-            transform: scale(1.03);
-        }
-        
-        .image-caption {
-            padding: 8px;
-            font-weight: bold;
-        }
-        
-        .image-source {
-            font-size: 0.8em;
-            color: #666;
-            padding-bottom: 8px;
-        }
-        
-        /* タイピングインジケーター */
-        .typing-indicator {
-            display: flex;
-            padding: 10px;
-            margin: 10px 0;
-            align-items: center;
-        }
-        
-        .typing-dot {
-            background-color: #3498db;
-            border-radius: 50%;
-            width: 8px;
-            height: 8px;
-            margin: 0 3px;
-            animation: typing-dot 1.4s infinite ease-in-out;
-        }
-        
-        .typing-dot:nth-child(1) {
-            animation-delay: 0s;
-        }
-        
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-        
-        @keyframes typing-dot {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-6px);
-            }
-        }
-    </style>
+    <!-- 既存のスタイル -->
+    <link rel="stylesheet" href="style.css" />
+    <!-- ▼ Swiper CSS 追加 -->
+    <link
+            rel="stylesheet"
+            href="https://unpkg.com/swiper@9/swiper-bundle.min.css"
+    />
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="header-content">
-                <img src="/images/travel-kun.png" alt="トラベルくん" class="avatar">
-                <h1>トラベルくんのMBTI旅行プランナー</h1>
-            </div>
-        </div>
-        
-        <div class="chat-messages" id="chat-messages">
-            <!-- メッセージはJSで動的に追加 -->
-        </div>
-        
-        <div id="options-container" class="options-container">
-            <!-- 選択肢ボタンはJSで動的に追加 -->
-        </div>
-        
-        <div class="chat-input-container">
-            <input type="text" id="user-input" placeholder="メッセージを入力..." autocomplete="off">
-            <button id="send-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            </button>
-        </div>
-        
-        <!-- 旅行プラン結果モーダル -->
-        <div id="travel-plan-modal" class="modal">
-            <div class="modal-content">
-                <span class="close-modal">&times;</span>
-                <div class="travel-plan-content"></div>
-            </div>
-        </div>
-    </div>
 
-    <!-- シンプルな広告バナー -->
-    <div class="ad-banner">
-        <div class="ad-container">
-            <iframe
-                src="https://jp.trip.com/partners/ad/DB3319052?Allianceid=6355434&SID=203962487&trip_sub1="
-                class="ad-iframe"
-                frameborder="0"
-                scrolling="no"
-                id="DB3319052">
-            </iframe>
-        </div>
-        <div class="ad-label">広告</div>
-    </div>
+<!-- ▼ ヘッダー（タイトルエリア） -->
+<header class="site-header">
+    <h1 class="site-title">
+        <span class="line1">MBTI × 旅行</span><br>
+        <span class="line2">プラン代行</span>
+    </h1>
+</header>
 
-    <script src="/utils/destinations.js"></script>
-    <script type="module" src="script.js"></script>
+<!-- ▼ ヒーローエリア -->
+<main class="hero">
+    <p class="catch">
+        あなたの性格タイプに<br class="sp-only">ぴったりの旅を
+    </p>
+
+    <button id="mbti-btn" class="btn-primary">
+        MBTI 別プランを診断する
+    </button>
+
+    <p class="note">※ 無料で診断 → プラン提案まで最短 1 分！</p>
+</main>
+
+<!-- ▼ ５枚スライダーセクション -->
+<section class="swiper my-swiper">
+    <div class="swiper-wrapper">
+        <div class="swiper-slide"><img src="img/slide1.jpg" alt="スライド１" loading="lazy" /></div>
+        <div class="swiper-slide"><img src="img/slide2.jpg" alt="スライド２" loading="lazy" /></div>
+        <div class="swiper-slide"><img src="img/slide3.jpg" alt="スライド３" loading="lazy" /></div>
+        <div class="swiper-slide"><img src="img/slide4.jpg" alt="スライド４" loading="lazy" /></div>
+        <div class="swiper-slide"><img src="img/slide5.jpg" alt="スライド５" loading="lazy" /></div>
+    </div>
+    <!-- ドットナビゲーション -->
+    <div class="swiper-pagination"></div>
+    <!-- 前後ボタン -->
+    <div class="swiper-button-prev"></div>
+    <div class="swiper-button-next"></div>
+</section>
+
+<!-- ▼ フッター -->
+<footer class="footer">
+    © 2025 mbti.match_travel
+</footer>
+
+<!-- 既存のJS -->
+<script src="script.js"></script>
+<!-- ▼ Swiper JS 追加 -->
+<script src="https://unpkg.com/swiper@9/swiper-bundle.min.js"></script>
 </body>
 </html>

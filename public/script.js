@@ -1,6 +1,6 @@
 // 「MBTI別プランを見る」ボタンをクリック → 専用ページへ遷移
 document.getElementById("mbti-btn").addEventListener("click", () => {
-    window.location.href = "https://north25mouth.github.io/mbti-travel-aichatbot/public/diagnose/";
+    window.location.href = "https://north25mouth.github.io/mbti-travel-aichatbot/public/diagnose";
 });
 
 

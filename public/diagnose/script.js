@@ -1,10 +1,10 @@
 // destinations.jsから必要な関数をインポート
 // 実際のインポート方法はプロジェクトの環境に依存します
-import {
+/*import {
     getEnglishDestination,
     isValidDestination,
     //getDestinationImage // 新たにインポート
-} from '../js/destinations.js';
+} from '../js/destinations.js';*/
 
 // チャットボットの状態管理
 const chatState = {

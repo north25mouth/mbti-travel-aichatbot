@@ -1,63 +1,28 @@
 // api/generate-travel-plan.js
-const { OpenAI } = require('openai');
-const path = require('path');
+const { Configuration, OpenAIApi } = require('openai');
 
-const destinationsModule = {
-    getDestinationList: (type) => type === '国内' ? '東京、京都、大阪、北海道、札幌、福岡、沖縄、箱根、金沢、広島、長野' : 'パリ、ロンドン、ニューヨーク、ローマ、バルセロナ、ソウル、バンコク、シンガポール、香港、台北、シドニー',
-    getEnglishDestination: (jp) => {
-        if (jp.includes('東京')) return 'Tokyo';
-        if (jp.includes('京都')) return 'Kyoto';
-        if (jp.includes('大阪')) return 'Osaka';
-        if (jp.includes('北海道')) return 'Hokkaido';
-        if (jp.includes('札幌')) return 'Sapporo';
-        if (jp.includes('福岡')) return 'Fukuoka';
-        if (jp.includes('沖縄')) return 'Okinawa';
-        if (jp.includes('パリ')) return 'Paris';
-        if (jp.includes('ロンドン')) return 'London';
-        if (jp.includes('ニューヨーク')) return 'New York';
-        return jp.includes('国内') ? 'Japan travel scenic' : 'international travel destination';
-    },
-    isValidDestination: () => true
-};
-
-// destinations.jsの正しいパスを設定
-// Vercelの環境では相対パスが異なる場合があるので注意
-/*let destinationsModule;
-try {
-    // 複数のパスパターンを試す
-    try {
-        destinationsModule = require('../js/destinations.js');
-    } catch (e) {
-        try {
-            destinationsModule = require('../public/js/destinations.js');
-        } catch (e) {
-            try {
-                destinationsModule = require(path.join(process.cwd(), 'js', 'destinations.js'));
-            } catch (e) {
-                destinationsModule = require(path.join(process.cwd(), 'public', 'js', 'destinations.js'));
-            }
-        }
-    }
-} catch (error) {
-    console.error('destinations.jsの読み込みに失敗しました:', error);
-    // フォールバック: 基本的な関数を定義
-    destinationsModule = {
-        getDestinationList: (type) => type === '国内' ? '東京、京都、大阪、北海道' : 'パリ、ロンドン、ニューヨーク、ローマ',
-        getEnglishDestination: (jp) => jp.includes('東京') ? 'Tokyo' : jp.includes('京都') ? 'Kyoto' : 'Japan',
-        isValidDestination: () => true
-    };
-}
-*/
-const {
-    getDestinationList,
-    getEnglishDestination,
-    isValidDestination
-} = destinationsModule;
-
-// OpenAI設定
-const openai = new OpenAI({
+// OpenAI設定 - v3.2.1に対応した初期化方法
+const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
 });
+const openai = new OpenAIApi(configuration);
+
+// 必要な関数を直接定義
+const getDestinationList = (type) => type === '国内' ? '東京、京都、大阪、北海道、札幌、福岡、沖縄、箱根、金沢、広島、長野' : 'パリ、ロンドン、ニューヨーク、ローマ、バルセロナ、ソウル、バンコク、シンガポール、香港、台北、シドニー';
+
+const getEnglishDestination = (jp) => {
+    if (jp.includes('東京')) return 'Tokyo';
+    if (jp.includes('京都')) return 'Kyoto';
+    if (jp.includes('大阪')) return 'Osaka';
+    if (jp.includes('北海道')) return 'Hokkaido';
+    if (jp.includes('札幌')) return 'Sapporo';
+    if (jp.includes('福岡')) return 'Fukuoka';
+    if (jp.includes('沖縄')) return 'Okinawa';
+    if (jp.includes('パリ')) return 'Paris';
+    if (jp.includes('ロンドン')) return 'London';
+    if (jp.includes('ニューヨーク')) return 'New York';
+    return jp.includes('国内') ? 'Japan travel scenic' : 'international travel destination';
+};
 
 // サーバーレス関数
 module.exports = async (req, res) => {
@@ -73,12 +38,12 @@ module.exports = async (req, res) => {
         return;
     }
 
-    // リクエストが POST でない場合はエラー
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'メソッドが許可されていません' });
-    }
-
     try {
+        // リクエストが POST でない場合はエラー
+        if (req.method !== 'POST') {
+            return res.status(405).json({ error: 'メソッドが許可されていません' });
+        }
+
         // リクエストボディを取得
         const {
             mbtiType,
@@ -141,8 +106,8 @@ ${travelStyle === '定番の人気スポット' ?
         // ユーザーメッセージの作成
         const userMessage = `${mbtiType}タイプで、${companions}と一緒に${season}に${duration}の${destinationType}旅行を計画しています。予算は${budget}で、${travelStyle}を希望し、${interests ? interests.join('、') : '特になし'}に興味があります。おすすめの旅行プランを教えてください。`;
 
-        // OpenAI APIを呼び出し
-        const completion = await openai.chat.completions.create({
+        // OpenAI APIを呼び出し - v3.2.1に対応した形式
+        const completion = await openai.createChatCompletion({
             model: 'gpt-3.5-turbo',
             messages: [
                 { role: 'system', content: systemPrompt },
@@ -152,19 +117,12 @@ ${travelStyle === '定番の人気スポット' ?
             temperature: 0.7,
         });
 
-        const travelPlanContent = completion.choices[0].message.content;
+        const travelPlanContent = completion.data.choices[0].message.content;
 
         // 旅行先と画像キーワードを抽出
         const extractedDestination = extractDestination(travelPlanContent);
         const imageKeyword = extractImageKeyword(travelPlanContent, destinationType);
-        const englishKeyword = getEnglishDestination(imageKeyword, destinationType);
-
-        // デバッグログ
-        console.log('旅行プラン生成完了:', {
-            destination: extractedDestination,
-            imageKeyword: imageKeyword,
-            englishKeyword: englishKeyword
-        });
+        const englishKeyword = getEnglishDestination(imageKeyword);
 
         // レスポンスを返す
         return res.status(200).json({

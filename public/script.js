@@ -1,8 +1,9 @@
 // destinations.jsから必要な関数をインポート
 // 実際のインポート方法はプロジェクトの環境に依存します
-import { 
-    getEnglishDestination, 
-    isValidDestination 
+import {
+    getEnglishDestination,
+    isValidDestination,
+    getDestinationImage // 新たにインポート
 } from '../utils/destinations.js';
 
 // チャットボットの状態管理
@@ -97,39 +98,6 @@ const sendButton = document.getElementById('send-button');
 const modal = document.getElementById('travel-plan-modal');
 const modalContent = document.querySelector('.travel-plan-content');
 const closeModal = document.querySelector('.close-modal');
-
-// 画像キーワードを抽出する関数
-function extractImageKeyword(content) {
-    if (!content) return null;
-    
-    // 画像キーワードの直接抽出
-    const keywordMatch = content.match(/画像キーワード:\s*([^\n]+)/);
-    if (keywordMatch && keywordMatch[1]) {
-        const keyword = keywordMatch[1].trim();
-        
-        // 地名を英語に変換
-        return getEnglishDestination(keyword, chatState.destinationType) || '日本 観光地';
-    }
-    
-    // 主な旅行先から抽出
-    const destinationMatch = content.match(/主な旅行先:\s*([^\n]+)/);
-    if (destinationMatch && destinationMatch[1]) {
-        const destination = destinationMatch[1].trim();
-        return getEnglishDestination(destination, chatState.destinationType) + ' 観光地 風景';
-    }
-    
-    // 最初の行から地名を探す
-    const firstLine = content.split('\n')[0];
-    const japaneseDestinations = ['京都', '北海道', '沖縄', '東京', '大阪', '奈良', '広島', '名古屋', '福岡', '札幌', '横浜', '神戸', '金沢', '長崎', '鎌倉', '日光', '箱根', '富士山'];
-    
-    for (const dest of japaneseDestinations) {
-        if (firstLine.includes(dest)) {
-            return getEnglishDestination(dest, chatState.destinationType) + ' 観光地 風景';
-        }
-    }
-    
-    return '日本 観光地';
-}
 
 // モーダル関連のイベント設定
 if (closeModal) {
@@ -734,60 +702,59 @@ return icons[category] || '📋';
 
 // 旅行プラン結果を整形
 function formatTravelPlanResult(text, imageKeyword) {
-if (!text) return '';
+    if (!text) return '';
 
-// 1. 改行を保持
-let formatted = text;
+    // 1. 改行を保持
+    let formatted = text;
 
-// 2. 数字+ドット+スペースで始まる行を見出しとして検出して強調
-formatted = formatted.replace(/([0-9]+)\.\s+([^\n]+)/g, '<strong>$1. $2</strong>');
+    // 2. 数字+ドット+スペースで始まる行を見出しとして検出して強調
+    formatted = formatted.replace(/([0-9]+)\.\s+([^\n]+)/g, '<strong>$1. $2</strong>');
 
-// 3. 絵文字を保持
-// 既に保持されているので特別な処理は不要
+    // 3. 絵文字を保持
+    // 既に保持されているので特別な処理は不要
 
-// 4. 画像キーワードの部分を非表示にする
-formatted = formatted.replace(/画像キーワード:.*\n/g, '');
+    // 4. 画像キーワードの部分を非表示にする
+    formatted = formatted.replace(/画像キーワード:.*\n/g, '');
 
-// 5. 画像を挿入するためのプレースホルダを追加
-// エンコードされた日本語が問題を起こすので、アルファベットのみのキーワードを使用
-const safeKeyword = imageKeyword ? 
-    imageKeyword.replace(/[^\w\s]/gi, ' ') : 'japan travel scenic';
+    // 5. 主な旅行先を抽出
+    let destination = '';
+    const destinationPattern = /主な旅行先:\s*([^\n]+)/;
+    const destinationMatch = formatted.match(destinationPattern);
+    if (destinationMatch && destinationMatch[1]) {
+        destination = destinationMatch[1].trim();
+    }
 
-// 日本語のキーワードが含まれている場合は英語に置き換える
-let displayKeyword = imageKeyword;
+    // 6. destinations.jsの関数を使用して画像ファイル名を取得
+    const imagePath = getDestinationImage(destination);
 
-const imageElement = `
-<div class="travel-image-container">
-    <img src="https://source.unsplash.com/800x450/?${encodeURIComponent(safeKeyword)}" 
-         alt="${displayKeyword}" 
-         class="travel-image"
-         onerror="this.onerror=null; this.src='https://via.placeholder.com/800x450?text=Travel+Destination';">
-    <div class="image-caption">画像: ${displayKeyword}</div>
-    <div class="image-source">画像提供: Unsplash (CC0)</div>
-</div>`;
+    // 7. 事前に用意した画像を表示するための処理
+    const imageElement = `
+    <div class="travel-image-container">
+        <img src="/images/destinations/${imagePath}" 
+             alt="${destination}" 
+             class="travel-image"
+             onerror="this.onerror=null; this.src='/images/destinations/default-destination.jpg';">
+        <div class="image-caption">画像: ${destination}</div>
+    </div>`;
 
-// 6. 「主な旅行先」の直後に画像を挿入
-const destinationPattern = /主な旅行先:.*\n/;
-const destinationMatch = formatted.match(destinationPattern);
-if (destinationMatch) {
-    const insertPosition = destinationMatch.index + destinationMatch[0].length;
-    formatted = formatted.substring(0, insertPosition) + imageElement + formatted.substring(insertPosition);
-} else {
-    // 見つからない場合は先頭に挿入
-    formatted = imageElement + formatted;
-}
+    // 8. 「主な旅行先」の直後に画像を挿入
+    if (destinationMatch) {
+        const insertPosition = destinationMatch.index + destinationMatch[0].length;
+        formatted = formatted.substring(0, insertPosition) + imageElement + formatted.substring(insertPosition);
+    } else {
+        // 見つからない場合は先頭に挿入
+        formatted = imageElement + formatted;
+    }
 
-// 7. 段落の間に適切な余白を追加
-formatted = formatted.replace(/\n\n/g, '</p><p>');
-formatted = '<p>' + formatted + '</p>';
-formatted = formatted.replace(/<p><strong>/g, '<p class="section-heading"><strong>');
+    // 以下は変更なし
+    formatted = formatted.replace(/\n\n/g, '</p><p>');
+    formatted = '<p>' + formatted + '</p>';
+    formatted = formatted.replace(/<p><strong>/g, '<p class="section-heading"><strong>');
+    formatted = formatted.replace(/・\s*([^\n]+)/g, '<li>$1</li>');
+    formatted = formatted.replace(/<li>([^<]+)<\/li>/g, '<ul><li>$1</li></ul>');
+    formatted = formatted.replace(/<\/ul>\s*<ul>/g, '');
 
-// 8. リスト項目を検出して適切に表示
-formatted = formatted.replace(/・\s*([^\n]+)/g, '<li>$1</li>');
-formatted = formatted.replace(/<li>([^<]+)<\/li>/g, '<ul><li>$1</li></ul>');
-formatted = formatted.replace(/<\/ul>\s*<ul>/g, '');
-
-return formatted;
+    return formatted;
 }
 
 // ボットメッセージを表示

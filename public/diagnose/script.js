@@ -716,7 +716,7 @@ function formatTravelPlanResult(text, imageKeyword) {
     // 4. 画像キーワードの部分を非表示にする
     formatted = formatted.replace(/画像キーワード:.*\n/g, '');
 
-    // 5. 主な旅行先を抽出
+    /*// 5. 主な旅行先を抽出
     let destination = '';
     const destinationPattern = /主な旅行先:\s*([^\n]+)/;
     const destinationMatch = formatted.match(destinationPattern);
@@ -744,7 +744,16 @@ function formatTravelPlanResult(text, imageKeyword) {
     } else {
         // 見つからない場合は先頭に挿入
         formatted = imageElement + formatted;
-    }
+    }*/
+
+    const imageElement = `
+    <div class="travel-image-container">
+        <img src="/images/default-destination.jpg" 
+             alt="旅行先イメージ" 
+             class="travel-image">
+        <div class="image-caption">旅行先イメージ</div>
+    </div>`;
+    formatted = imageElement + formatted;
 
     // 以下は変更なし
     formatted = formatted.replace(/\n\n/g, '</p><p>');

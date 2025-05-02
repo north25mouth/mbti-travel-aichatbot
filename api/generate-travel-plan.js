@@ -2,9 +2,27 @@
 const { OpenAI } = require('openai');
 const path = require('path');
 
+const destinationsModule = {
+    getDestinationList: (type) => type === '国内' ? '東京、京都、大阪、北海道、札幌、福岡、沖縄、箱根、金沢、広島、長野' : 'パリ、ロンドン、ニューヨーク、ローマ、バルセロナ、ソウル、バンコク、シンガポール、香港、台北、シドニー',
+    getEnglishDestination: (jp) => {
+        if (jp.includes('東京')) return 'Tokyo';
+        if (jp.includes('京都')) return 'Kyoto';
+        if (jp.includes('大阪')) return 'Osaka';
+        if (jp.includes('北海道')) return 'Hokkaido';
+        if (jp.includes('札幌')) return 'Sapporo';
+        if (jp.includes('福岡')) return 'Fukuoka';
+        if (jp.includes('沖縄')) return 'Okinawa';
+        if (jp.includes('パリ')) return 'Paris';
+        if (jp.includes('ロンドン')) return 'London';
+        if (jp.includes('ニューヨーク')) return 'New York';
+        return jp.includes('国内') ? 'Japan travel scenic' : 'international travel destination';
+    },
+    isValidDestination: () => true
+};
+
 // destinations.jsの正しいパスを設定
 // Vercelの環境では相対パスが異なる場合があるので注意
-let destinationsModule;
+/*let destinationsModule;
 try {
     // 複数のパスパターンを試す
     try {
@@ -29,7 +47,7 @@ try {
         isValidDestination: () => true
     };
 }
-
+*/
 const {
     getDestinationList,
     getEnglishDestination,

@@ -3,7 +3,7 @@
 import {
     getEnglishDestination,
     isValidDestination,
-    getDestinationImage // 新たにインポート
+    //getDestinationImage // 新たにインポート
 } from '/utils/destinations.js';
 
 // チャットボットの状態管理

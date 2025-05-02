@@ -1,17 +1,17 @@
 {
-  "name": "mbti-travel-advisor",
+  "name": "mbti-travel-bot",
   "version": "1.0.0",
-  "description": "MBTIタイプに基づく旅行プランナー",
-  "type": "commonjs",
+  "description": "MBTI型に基づいた旅行プランを提案するチャットボット",
   "main": "index.js",
   "scripts": {
-    "start": "vercel dev",
-    "build": "vercel build"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "dependencies": {
+    "next": "^12.0.0",
     "openai": "^3.2.1"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "author": "",
+  "license": "MIT"
 }
